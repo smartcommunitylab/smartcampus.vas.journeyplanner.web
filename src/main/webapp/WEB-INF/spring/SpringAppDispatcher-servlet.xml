@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Copyright 2012-2013 Trento RISE
+  
+     Licensed under the Apache License, Version 2.0 (the "License");
+     you may not use this file except in compliance with the License.
+     You may obtain a copy of the License at
+  
+         http://www.apache.org/licenses/LICENSE-2.0
+  
+     Unless required by applicable law or agreed to in writing, software
+     distributed under the License is distributed on an "AS IS" BASIS,
+     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+     See the License for the specific language governing permissions and
+     limitations under the License.
+-->
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:mvc="http://www.springframework.org/schema/mvc" xmlns:util="http://www.springframework.org/schema/util"
+	xmlns:mongo="http://www.springframework.org/schema/data/mongo"
+	xmlns:sec="http://www.springframework.org/schema/security"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans 
+	http://www.springframework.org/schema/beans/spring-beans-3.1.xsd
+	http://www.springframework.org/schema/mvc 
+	http://www.springframework.org/schema/mvc/spring-mvc-3.0.xsd
+	http://www.springframework.org/schema/context 
+	http://www.springframework.org/schema/context/spring-context-3.1.xsd
+	http://www.springframework.org/schema/util
+    http://www.springframework.org/schema/util/spring-util-3.1.xsd
+    http://www.springframework.org/schema/data/mongo
+    http://www.springframework.org/schema/data/mongo/spring-mongo-1.0.xsd
+    http://www.springframework.org/schema/security 
+  	http://www.springframework.org/schema/security/spring-security-3.1.xsd">
+
+	<mvc:annotation-driven />
+
+	<!-- MVC Controllers -->
+	<context:component-scan base-package="eu.trentorise.smartcampus.journeyplanner.controller" />
+
+	<context:property-placeholder  location="classpath:journeyplanner.properties" />
+
+	<!-- Resolves view names to protected .jsp resources within the /WEB-INF/views directory -->
+	<bean
+		class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+		<property name="prefix" value="/WEB-INF/views/" />
+		<property name="suffix" value=".jsp" />
+	</bean>
+
+	<bean class="org.springframework.web.context.support.ServletContextPropertyPlaceholderConfigurer" />
+
+	<mongo:mongo host="${smartcampus.vas.web.mongo.host}" port="${smartcampus.vas.web.mongo.port}" />
+
+	<bean id="mongoTemplate" class="org.springframework.data.mongodb.core.MongoTemplate">
+		<constructor-arg ref="mongo" />
+		<constructor-arg name="databaseName" value="${smartcampus.vas.web.mongo.db}" />
+	</bean>
+
+    <bean id="syncObjectStorage" class="eu.trentorise.smartcampus.presentation.storage.sync.mongo.BasicObjectSyncMongoStorage">
+        <constructor-arg ref="mongoTemplate" />
+    </bean>
+    
+	<bean id="semanticClientConfiguration" class="eu.trentorise.smartcampus.semantic.client.ClientConfiguration">
+		<constructor-arg>
+			<map>
+				<!-- 
+				<entry key="SERVICE_ENDPOINT" value="${smartcampus.vas.web.semanticclient.URL}" />
+				-->
+				<entry key="SERVICE_ENDPOINT" value="smartcampus.vas.web.semanticclient.URL" />
+			</map>
+		</constructor-arg>
+	</bean>
+
+	<!-- JMS Configuration -->
+	<!-- 
+	<bean id="jndiTemplate" class="org.springframework.jndi.JndiTemplate">
+		<property name="environment">
+			<props>
+				<prop key="java.naming.factory.initial">org.jboss.as.naming.InitialContextFactory</prop>
+				<prop key="java.naming.provider.url">jnp://localhost:1099</prop>
+				<prop key="java.naming.factory.url.pkgs">org.jboss.naming:org.jnp.interfaces</prop>
+			</props>
+		</property>
+	</bean>
+
+	<bean id="queueConnectionFactory" class="org.springframework.jndi.JndiObjectFactoryBean" lazy-init="false">
+		<property name="jndiTemplate" ref="jndiTemplate" />
+		<property name="jndiName">
+			<value>java:/ConnectionFactory</value>
+		</property>
+	</bean>
+	
+	<bean id="connectionFactory" class="org.springframework.jms.connection.CachingConnectionFactory">
+		<constructor-arg ref="queueConnectionFactory" />  
+		<property name="sessionCacheSize" value="75" /> 
+		<property name="reconnectOnException" value="true" /> 
+	</bean>
+	-->
+	
+		<bean id="connectionFactory" class="org.apache.activemq.ActiveMQConnectionFactory">
+		<property name="brokerURL" value="${smartcampus.vas.web.activeMQ.brokerURL}" />
+		<!-- tcp://localhost:61616 -->
+		<!-- ${smartcampus.vas.web.activeMQ.brokerURL} -->
+	</bean>
+
+	<bean id="eventProcessor" class="eu.trentorise.smartcampus.journeyplanner.processor.EventProcessorImpl">
+	</bean>
+
+	<bean id="domainEngineClient" class="it.sayservice.platform.client.jms.JMSDomainEngineClient" scope="singleton" destroy-method="destroy">
+		<constructor-arg>
+			<ref bean="connectionFactory" />
+		</constructor-arg>
+		<property name="clientId" value="vas_journeyplanner_subscriber" />
+		<property name="domainUpdateListener" ref="eventProcessor" />
+	</bean>
+	
+	<bean id="domainUpdateSubscriber" class="eu.trentorise.smartcampus.journeyplanner.listener.Subscriber">
+		<constructor-arg ref="domainEngineClient" />
+	</bean>	
+	
+	<bean id="acClient" class="eu.trentorise.smartcampus.ac.provider.filters.AcClient">
+        <property name="endpointUrl" value="${ac.endpoint.url}" />
+    </bean>
+	
+</beans>
