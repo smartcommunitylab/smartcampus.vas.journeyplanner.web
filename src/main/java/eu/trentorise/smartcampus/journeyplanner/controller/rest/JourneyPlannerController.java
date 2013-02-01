@@ -18,6 +18,7 @@ package eu.trentorise.smartcampus.journeyplanner.controller.rest;
 import it.sayservice.platform.client.DomainEngineClient;
 import it.sayservice.platform.client.DomainObject;
 import it.sayservice.platform.client.InvocationException;
+import it.sayservice.platform.core.common.util.ServiceUtil;
 import it.sayservice.platform.smartplanner.data.message.Itinerary;
 import it.sayservice.platform.smartplanner.data.message.Leg;
 import it.sayservice.platform.smartplanner.data.message.TType;
@@ -274,15 +275,15 @@ public class JourneyPlannerController {
 	}
 
 	// no crud
-	@RequestMapping(method = RequestMethod.POST, value = "/monitoritinerary/{clientId}/{monitor}")
+	@RequestMapping(method = RequestMethod.GET, value = "/monitoritinerary/{clientId}/{monitor}")
 	public @ResponseBody
-	void monitorItinerary(HttpServletRequest request, HttpServletResponse response, HttpSession session, @PathVariable String clientId, @PathVariable boolean monitor) throws InvocationException, AcServiceException {
+	boolean monitorItinerary(HttpServletRequest request, HttpServletResponse response, HttpSession session, @PathVariable String clientId, @PathVariable boolean monitor) throws InvocationException, AcServiceException {
 		try {
 			User user = getUser(request);
 			String userId = getUserId(user);
 			if (userId == null) {
 				response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-				return;
+				return false;
 			}
 
 			String objectId = getObjectIdByClientId(clientId, "smartcampus.services.journeyplanner.ItineraryObject");
@@ -291,13 +292,17 @@ public class JourneyPlannerController {
 				Map<String, Object> pars = new HashMap<String, Object>();
 				pars.put("flag", monitor);
 				pars.put("userId", userId);
-				domainClient.invokeDomainOperation("setMonitorFlag", "smartcampus.services.journeyplanner.ItineraryObject", objectId, pars, userId, "vas_journeyplanner_subscriber");
+//				domainClient.invokeDomainOperation("setMonitorFlag", "smartcampus.services.journeyplanner.ItineraryObject", objectId, pars, userId, "vas_journeyplanner_subscriber");
+				byte[] b = (byte[])domainClient.invokeDomainOperationSync("setMonitorFlag", "smartcampus.services.journeyplanner.ItineraryObject", objectId, pars, "vas_journeyplanner_subscriber");
+				String s = (String)ServiceUtil.deserializeObject(b);
+				return Boolean.parseBoolean(s);				
 			} else {
 				response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
 			}
 		} catch (Exception e) {
 			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 		}
+		return false;
 	}
 
 	// RECURRENT
@@ -516,15 +521,15 @@ public class JourneyPlannerController {
 	}
 
 	// no crud
-	@RequestMapping(method = RequestMethod.POST, value = "/monitorrecurrentjourney/{clientId}/{monitor}")
+	@RequestMapping(method = RequestMethod.GET, value = "/monitorrecurrentjourney/{clientId}/{monitor}")
 	public @ResponseBody
-	void monitorRecurrentJourney(HttpServletRequest request, HttpServletResponse response, HttpSession session, @PathVariable String clientId, @PathVariable boolean monitor) throws InvocationException, AcServiceException {
+	boolean monitorRecurrentJourney(HttpServletRequest request, HttpServletResponse response, HttpSession session, @PathVariable String clientId, @PathVariable boolean monitor) throws InvocationException, AcServiceException {
 		try {
 			User user = getUser(request);
 			String userId = getUserId(user);
 			if (userId == null) {
 				response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-				return;
+				return false;
 			}
 
 			String objectId = getObjectIdByClientId(clientId, "smartcampus.services.journeyplanner.RecurrentJourneyObject");
@@ -534,15 +539,19 @@ public class JourneyPlannerController {
 			Map<String, Object> pars = new HashMap<String, Object>();
 			pars.put("flag", monitor);
 			pars.put("userId", userId);
-			domainClient.invokeDomainOperation("setMonitorFlag", "smartcampus.services.journeyplanner.RecurrentJourneyObject", objectId, pars, userId, "vas_journeyplanner_subscriber");
+//			domainClient.invokeDomainOperation("setMonitorFlag", "smartcampus.services.journeyplanner.RecurrentJourneyObject", objectId, pars, userId, "vas_journeyplanner_subscriber");
+			byte[] b = (byte[])domainClient.invokeDomainOperationSync("setMonitorFlag", "smartcampus.services.journeyplanner.RecurrentJourneyObject", objectId, pars, "vas_journeyplanner_subscriber");
+			String s = (String)ServiceUtil.deserializeObject(b);
+			return Boolean.parseBoolean(s);
 			} else {
 				response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
 			}
 		} catch (Exception e) {
 			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 		}
+		return false;
 	}
-
+	
 	// ALERTS
 
 	// no crud
