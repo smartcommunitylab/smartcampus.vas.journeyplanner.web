@@ -59,17 +59,6 @@
         <constructor-arg ref="mongoTemplate" />
     </bean>
     
-	<bean id="semanticClientConfiguration" class="eu.trentorise.smartcampus.semantic.client.ClientConfiguration">
-		<constructor-arg>
-			<map>
-				<!-- 
-				<entry key="SERVICE_ENDPOINT" value="${smartcampus.vas.web.semanticclient.URL}" />
-				-->
-				<entry key="SERVICE_ENDPOINT" value="smartcampus.vas.web.semanticclient.URL" />
-			</map>
-		</constructor-arg>
-	</bean>
-
 	<!-- JMS Configuration -->
 	<!-- 
 	<bean id="jndiTemplate" class="org.springframework.jndi.JndiTemplate">
