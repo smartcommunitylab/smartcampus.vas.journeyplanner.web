@@ -322,8 +322,7 @@ public class JourneyPlannerController {
 				return null;
 			}
 
-			BasicRecurrentJourneyParameters journeyRequest = (BasicRecurrentJourneyParameters) extractContent(request, BasicRecurrentJourneyParameters.class);
-			RecurrentJourneyParameters parameters = journeyRequest.getData();
+			RecurrentJourneyParameters parameters = (RecurrentJourneyParameters) extractContent(request, RecurrentJourneyParameters.class);
 
 			List<String> reqs = buildRecurrentJourneyPlannerRequest(parameters);
 			List<SimpleLeg> legs = new ArrayList<SimpleLeg>();
@@ -391,8 +390,7 @@ public class JourneyPlannerController {
 				return null;
 			}
 
-			BasicRecurrentJourneyParameters journeyRequest = (BasicRecurrentJourneyParameters) extractContent(request, BasicRecurrentJourneyParameters.class);
-			RecurrentJourneyParameters parameters = journeyRequest.getData();
+			RecurrentJourneyParameters parameters = (RecurrentJourneyParameters) extractContent(request, RecurrentJourneyParameters.class);
 
 			List<String> reqs = buildRecurrentJourneyPlannerRequest(parameters);
 			List<SimpleLeg> legs = new ArrayList<SimpleLeg>();
