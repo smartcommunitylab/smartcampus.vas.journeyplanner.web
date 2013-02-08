@@ -496,7 +496,7 @@ public class JourneyPlannerController {
 			String id = transport.getAgencyId() + "_" + transport.getRouteId();
 			if (!result.containsKey(id)) {
 				if (old.containsKey(id)) {
-					result.put(id, !old.get(id));
+					result.put(id, old.get(id));
 				} else {
 					result.put(id, true);
 				}
