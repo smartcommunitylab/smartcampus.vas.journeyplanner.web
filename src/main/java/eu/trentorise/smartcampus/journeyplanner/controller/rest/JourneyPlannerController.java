@@ -20,6 +20,7 @@ import it.sayservice.platform.client.DomainObject;
 import it.sayservice.platform.client.InvocationException;
 import it.sayservice.platform.core.common.util.ServiceUtil;
 import it.sayservice.platform.smartplanner.data.message.Itinerary;
+import it.sayservice.platform.smartplanner.data.message.RType;
 import it.sayservice.platform.smartplanner.data.message.SimpleLeg;
 import it.sayservice.platform.smartplanner.data.message.TType;
 import it.sayservice.platform.smartplanner.data.message.Transport;
@@ -31,9 +32,11 @@ import it.sayservice.platform.smartplanner.data.message.alerts.AlertStrike;
 import it.sayservice.platform.smartplanner.data.message.alerts.AlertType;
 import it.sayservice.platform.smartplanner.data.message.alerts.CreatorType;
 import it.sayservice.platform.smartplanner.data.message.journey.JourneyPlannerUserProfile;
+import it.sayservice.platform.smartplanner.data.message.journey.JourneyRecurrence;
 import it.sayservice.platform.smartplanner.data.message.journey.RecurrentJourney;
 import it.sayservice.platform.smartplanner.data.message.journey.RecurrentJourneyParameters;
 import it.sayservice.platform.smartplanner.data.message.journey.SingleJourney;
+import it.sayservice.platform.smartplanner.data.message.journey.old.OldRecurrentJourneyParameters;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -42,6 +45,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
+import javax.jws.soap.SOAPBinding.ParameterStyle;
 import javax.servlet.ServletInputStream;
 import javax.servlet.ServletOutputStream;
 import javax.servlet.ServletRequest;
@@ -69,7 +73,7 @@ import eu.trentorise.smartcampus.ac.provider.model.User;
 import eu.trentorise.smartcampus.journeyplanner.sync.BasicItinerary;
 import eu.trentorise.smartcampus.journeyplanner.sync.BasicJourneyPlannerUserProfile;
 import eu.trentorise.smartcampus.journeyplanner.sync.BasicRecurrentJourney;
-import eu.trentorise.smartcampus.journeyplanner.sync.BasicRecurrentJourneyParameters;
+import eu.trentorise.smartcampus.journeyplanner.sync.OldBasicRecurrentJourneyParameters;
 import eu.trentorise.smartcampus.journeyplanner.util.HTTPConnector;
 import eu.trentorise.smartcampus.presentation.storage.BasicObjectStorage;
 
@@ -309,6 +313,312 @@ public class JourneyPlannerController {
 		return false;
 	}
 
+	// OLD RECURRENT
+	
+	@RequestMapping(method = RequestMethod.POST, value = "/eu.trentorise.smartcampus.journeyplanner.sync.BasicRecurrentJourneyParameters")
+	public @ResponseBody
+	void oldSaveRecurrentJourney(HttpServletRequest request, HttpServletResponse response, HttpSession session) throws InvocationException, AcServiceException {
+		try {
+			User user = getUser(request);
+			String userId = getUserId(user);
+			if (userId == null) {
+				response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+				return;
+			}	
+			
+			OldBasicRecurrentJourneyParameters journeyRequest = (OldBasicRecurrentJourneyParameters) extractContent(request, OldBasicRecurrentJourneyParameters.class);
+			OldRecurrentJourneyParameters parameters = journeyRequest.getData();
+			
+			RecurrentJourneyParameters newParameters = new RecurrentJourneyParameters();
+			newParameters.setFrom(parameters.getFrom());
+			newParameters.setFromDate(parameters.getFromDate());
+			newParameters.setInterval(parameters.getInterval());
+			newParameters.setResultsNumber(parameters.getResultsNumber());
+			newParameters.setRouteType(parameters.getRouteType());
+			newParameters.setTime(parameters.getTime());
+			newParameters.setTo(parameters.getTo());
+			newParameters.setToDate(parameters.getToDate());
+			newParameters.setTransportTypes(parameters.getTransportTypes());
+			List<Integer> recDays = new ArrayList<Integer>();
+			if (parameters.getRecurrence() == JourneyRecurrence.EVERYDAY || parameters.getRecurrence() == JourneyRecurrence.WEEKENDS) {
+				recDays.add(1);
+				recDays.add(7);
+			}
+			if (parameters.getRecurrence() == JourneyRecurrence.EVERYDAY || parameters.getRecurrence() == JourneyRecurrence.WEEKDAYS) {
+				recDays.add(4);
+			}		
+			newParameters.setRecurrence(recDays);
+			
+			List<String> reqs = buildRecurrentJourneyPlannerRequest(newParameters);
+			List<SimpleLeg> legs = new ArrayList<SimpleLeg>();
+			ObjectMapper mapper = new ObjectMapper();
+			for (String req : reqs) {
+				String plan = HTTPConnector.doGet(otpURL + SMARTPLANNER + RECURRENT, req, MediaType.APPLICATION_JSON, null, null);
+				List sl = mapper.readValue(plan, List.class);
+				for (Object o : sl) {
+					legs.add((SimpleLeg) mapper.convertValue(o, SimpleLeg.class));
+				}
+			}			
+			
+			RecurrentJourney journey = new RecurrentJourney();
+			journey.setParameters(newParameters);
+			journey.setLegs(legs);
+			journey.setMonitorLegs(buildMonitorMap(legs));			
+			
+			BasicRecurrentJourney basicRecurrent = new BasicRecurrentJourney();
+			basicRecurrent.setClientId(journeyRequest.getClientId());
+			basicRecurrent.setData(journey);
+			basicRecurrent.setMonitor(journeyRequest.isMonitor());
+			basicRecurrent.setName(journeyRequest.getName());
+			basicRecurrent.setUser(journeyRequest.getUser());
+			basicRecurrent.setId(journeyRequest.getId());
+			
+			Map<String, Object> pars = new HashMap<String, Object>();
+			pars.put("recurrentJourney", basicRecurrent.getData());
+			pars.put("name", basicRecurrent.getName());
+			String clientId = basicRecurrent.getClientId();
+			if (clientId == null) {
+				clientId = new ObjectId().toString();
+			}
+			pars.put("clientId", clientId);
+			pars.put("userId", userId);
+			pars.put("monitor", basicRecurrent.isMonitor());
+			domainClient.invokeDomainOperation("saveRecurrentJourney", "smartcampus.services.journeyplanner.RecurrentJourneyFactory", "smartcampus.services.journeyplanner.RecurrentJourneyFactory.0", pars, userId, "vas_journeyplanner_subscriber");			
+			storage.storeObject(basicRecurrent);
+		} catch (Exception e) {
+			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+		}
+	}
+	
+	@RequestMapping(method = RequestMethod.PUT, value = "/eu.trentorise.smartcampus.journeyplanner.sync.BasicRecurrentJourneyParameters/{clientId}")
+	public @ResponseBody
+	void oldUpdateRecurrentJourney(HttpServletRequest request, HttpServletResponse response, HttpSession session, @PathVariable String clientId) throws InvocationException, AcServiceException {
+		try {	
+			User user = getUser(request);
+			String userId = getUserId(user);
+			if (userId == null) {
+				response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+				return;
+			}	
+			
+			OldBasicRecurrentJourneyParameters journeyRequest = (OldBasicRecurrentJourneyParameters) extractContent(request, OldBasicRecurrentJourneyParameters.class);
+			OldRecurrentJourneyParameters parameters = journeyRequest.getData();
+			
+			RecurrentJourneyParameters newParameters = new RecurrentJourneyParameters();
+			newParameters.setFrom(parameters.getFrom());
+			newParameters.setFromDate(parameters.getFromDate());
+			newParameters.setInterval(parameters.getInterval());
+			newParameters.setResultsNumber(parameters.getResultsNumber());
+			newParameters.setRouteType(parameters.getRouteType());
+			newParameters.setTime(parameters.getTime());
+			newParameters.setTo(parameters.getTo());
+			newParameters.setToDate(parameters.getToDate());
+			newParameters.setTransportTypes(parameters.getTransportTypes());
+			List<Integer> recDays = new ArrayList<Integer>();
+			if (parameters.getRecurrence() == JourneyRecurrence.EVERYDAY || parameters.getRecurrence() == JourneyRecurrence.WEEKENDS) {
+				recDays.add(1);
+				recDays.add(7);
+			}
+			if (parameters.getRecurrence() == JourneyRecurrence.EVERYDAY || parameters.getRecurrence() == JourneyRecurrence.WEEKDAYS) {
+				recDays.add(4);
+			}		
+			newParameters.setRecurrence(recDays);
+			
+			List<String> reqs = buildRecurrentJourneyPlannerRequest(newParameters);
+			List<SimpleLeg> legs = new ArrayList<SimpleLeg>();
+			ObjectMapper mapper = new ObjectMapper();
+			for (String req : reqs) {
+				String plan = HTTPConnector.doGet(otpURL + SMARTPLANNER + RECURRENT, req, MediaType.APPLICATION_JSON, null, null);
+				List sl = mapper.readValue(plan, List.class);
+				for (Object o : sl) {
+					legs.add((SimpleLeg) mapper.convertValue(o, SimpleLeg.class));
+				}
+			}			
+			
+			RecurrentJourney journey = new RecurrentJourney();
+			journey.setParameters(newParameters);
+			journey.setLegs(legs);
+			journey.setMonitorLegs(buildMonitorMap(legs));			
+			
+			BasicRecurrentJourney basicRecurrent = new BasicRecurrentJourney();
+			basicRecurrent.setClientId(journeyRequest.getClientId());
+			basicRecurrent.setData(journey);
+			basicRecurrent.setMonitor(journeyRequest.isMonitor());
+			basicRecurrent.setName(journeyRequest.getName());
+			basicRecurrent.setUser(journeyRequest.getUser());
+			basicRecurrent.setId(journeyRequest.getId());
+			
+			DomainObject res = getObjectByClientId(clientId, "smartcampus.services.journeyplanner.RecurrentJourneyObject");
+			if (res != null) {
+				String objectId = checkUser(res, userId);
+				if (objectId == null) {
+					response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+					return;
+				}
+
+				Map<String, Object> pars = new HashMap<String, Object>();
+				pars.put("newJourney", journey);
+				pars.put("newName", journeyRequest.getName());
+				pars.put("newMonitor", journeyRequest.isMonitor());				
+				domainClient.invokeDomainOperation("updateRecurrentJourney", "smartcampus.services.journeyplanner.RecurrentJourneyObject", objectId, pars, userId, "vas_journeyplanner_subscriber");
+			} else {
+				response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+			}			
+			
+		} catch (Exception e) {
+			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+		}
+	}
+
+	
+	@RequestMapping(method = RequestMethod.GET, value = "/eu.trentorise.smartcampus.journeyplanner.sync.BasicRecurrentJourneyParameters")
+	public @ResponseBody
+	OldBasicRecurrentJourneyParameters oldGetRecurrentJourneys(HttpServletRequest request, HttpServletResponse response, HttpSession session, @PathVariable String clientId) throws InvocationException {	
+		try {
+			User user = getUser(request);
+			String userId = getUserId(user);
+			if (userId == null) {
+				response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+				return null;
+			}
+
+			DomainObject obj = getObjectByClientId(clientId, "smartcampus.services.journeyplanner.RecurrentJourneyObject");
+			if (obj == null) {
+				response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+				return null;
+			}
+			if (checkUser(obj, userId) == null) {
+				response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+				return null;
+			}
+
+			ObjectMapper mapper = new ObjectMapper();
+			mapper.configure(Feature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+
+				RecurrentJourney recurrent = mapper.convertValue(obj.getContent().get("data"), RecurrentJourney.class);
+				
+				OldBasicRecurrentJourneyParameters parameters = new OldBasicRecurrentJourneyParameters();
+
+				RecurrentJourneyParameters newParameters = recurrent.getParameters();
+				OldRecurrentJourneyParameters oldParameters = convertParametersToOld(newParameters);
+				
+				parameters.setData(oldParameters);
+				parameters.setClientId((String) obj.getContent().get("clientId"));
+				parameters.setName((String) obj.getContent().get("name"));
+				parameters.setMonitor((Boolean) obj.getContent().get("monitor"));
+
+			return parameters;
+		
+	} catch (Exception e) {
+		response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+	}
+	return null;
+}	
+	
+	@RequestMapping(method = RequestMethod.GET, value = "/eu.trentorise.smartcampus.journeyplanner.sync.BasicRecurrentJourneyParameters/{clientId}")
+	public @ResponseBody
+	List<OldBasicRecurrentJourneyParameters> oldGetRecurrentJourneys(HttpServletRequest request, HttpServletResponse response, HttpSession session) throws InvocationException {	
+		try {
+			User user = getUser(request);
+			String userId = getUserId(user);
+			if (userId == null) {
+				response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+				return null;
+			}
+
+			Map<String, Object> pars = new TreeMap<String, Object>();
+			pars.put("userId", userId);
+			List<String> res = domainClient.searchDomainObjects("smartcampus.services.journeyplanner.RecurrentJourneyObject", pars, "vas_journeyplanner_subscriber");
+
+			List<OldBasicRecurrentJourneyParameters> journeys = new ArrayList<OldBasicRecurrentJourneyParameters>();
+			ObjectMapper mapper = new ObjectMapper();
+			mapper.configure(Feature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+			for (String r : res) {
+				DomainObject obj = new DomainObject(r);
+				RecurrentJourney recurrent = mapper.convertValue(obj.getContent().get("data"), RecurrentJourney.class);
+				
+				OldBasicRecurrentJourneyParameters parameters = new OldBasicRecurrentJourneyParameters();
+
+				RecurrentJourneyParameters newParameters = recurrent.getParameters();
+				OldRecurrentJourneyParameters oldParameters = convertParametersToOld(newParameters);
+				
+				parameters.setData(oldParameters);
+				parameters.setClientId((String) obj.getContent().get("clientId"));
+				parameters.setName((String) obj.getContent().get("name"));
+				parameters.setMonitor((Boolean) obj.getContent().get("monitor"));
+
+				journeys.add(parameters);
+			}
+
+			return journeys;
+		
+	} catch (Exception e) {
+		response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+	}
+	return null;
+}		
+	
+	@RequestMapping(method = RequestMethod.DELETE, value = "/eu.trentorise.smartcampus.journeyplanner.sync.BasicRecurrentJourneyParameters/{clientId}")
+	public @ResponseBody
+	void oldDeleteRecurrentJourney(HttpServletRequest request, HttpServletResponse response, HttpSession session, @PathVariable String clientId) throws InvocationException, AcServiceException {
+		try {
+			User user = getUser(request);
+			String userId = getUserId(user);
+			if (userId == null) {
+				response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+				return;
+			}
+
+			String objectId = getObjectIdByClientId(clientId, "smartcampus.services.journeyplanner.RecurrentJourneyObject");
+
+			if (objectId != null) {
+				Map<String, Object> pars = new HashMap<String, Object>();
+				pars.put("userId", userId);
+				domainClient.invokeDomainOperation("deleteRecurrentJourney", "smartcampus.services.journeyplanner.RecurrentJourneyObject", objectId, pars, userId, "vas_journeyplanner_subscriber");
+			} else {
+				response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+			}
+		} catch (Exception e) {
+			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+		}
+	}	
+	
+	private OldRecurrentJourneyParameters convertParametersToOld(RecurrentJourneyParameters newParameters) {
+		OldRecurrentJourneyParameters oldParameters = new OldRecurrentJourneyParameters();
+		oldParameters.setFrom(newParameters.getFrom());
+		oldParameters.setFromDate(newParameters.getFromDate());
+		oldParameters.setInterval(newParameters.getInterval());
+		oldParameters.setResultsNumber(newParameters.getResultsNumber());
+		oldParameters.setRouteType(newParameters.getRouteType());
+		oldParameters.setTime(newParameters.getTime());
+		oldParameters.setTo(newParameters.getTo());
+		oldParameters.setToDate(newParameters.getToDate());
+		oldParameters.setTransportTypes(newParameters.getTransportTypes());
+		List<Integer> recurrence = newParameters.getRecurrence();
+		
+		JourneyRecurrence oldRecurrence = null;
+		for (int i : recurrence) {
+			if (i >= 2 && i <=6) {
+				if (oldRecurrence == null) {
+					oldRecurrence = JourneyRecurrence.WEEKDAYS;
+				} else if (oldRecurrence == JourneyRecurrence.WEEKENDS) {
+					oldRecurrence = JourneyRecurrence.EVERYDAY;
+				}
+			}
+			if (i == 1 || i == 7) {
+				if (oldRecurrence == null) {
+					oldRecurrence = JourneyRecurrence.WEEKENDS;
+				} else if (oldRecurrence == JourneyRecurrence.WEEKDAYS) {
+					oldRecurrence = JourneyRecurrence.EVERYDAY;
+				}
+			}					
+		}
+		oldParameters.setRecurrence(oldRecurrence);		
+		
+		return oldParameters;
+	}
+	
+	
 	// RECURRENT
 
 	@RequestMapping(method = RequestMethod.POST, value = "/planrecurrent")
@@ -600,7 +910,7 @@ public class JourneyPlannerController {
 		return null;
 	}
 
-	@RequestMapping(method = RequestMethod.DELETE, value = "/eu.trentorise.smartcampus.journeyplanner.sync.BasicRecurrentJourneyParameters/{clientId}")
+	@RequestMapping(method = RequestMethod.DELETE, value = "/eu.trentorise.smartcampus.journeyplanner.sync.BasicRecurrentJourney/{clientId}")
 	public @ResponseBody
 	void deleteRecurrentJourney(HttpServletRequest request, HttpServletResponse response, HttpSession session, @PathVariable String clientId) throws InvocationException, AcServiceException {
 		try {
@@ -624,7 +934,7 @@ public class JourneyPlannerController {
 			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 		}
 	}
-
+	
 	// no crud
 	@RequestMapping(method = RequestMethod.GET, value = "/monitorrecurrentjourney/{clientId}/{monitor}")
 	public @ResponseBody
