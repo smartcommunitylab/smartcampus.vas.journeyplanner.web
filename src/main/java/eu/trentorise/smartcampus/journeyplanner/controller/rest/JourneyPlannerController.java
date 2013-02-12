@@ -345,7 +345,9 @@ public class JourneyPlannerController {
 				recDays.add(7);
 			}
 			if (parameters.getRecurrence() == JourneyRecurrence.EVERYDAY || parameters.getRecurrence() == JourneyRecurrence.WEEKDAYS) {
-				recDays.add(4);
+				for (int i = 2; i <=6; i++) {
+					recDays.add(i);
+				}
 			}		
 			newParameters.setRecurrence(recDays);
 			
@@ -420,7 +422,9 @@ public class JourneyPlannerController {
 				recDays.add(7);
 			}
 			if (parameters.getRecurrence() == JourneyRecurrence.EVERYDAY || parameters.getRecurrence() == JourneyRecurrence.WEEKDAYS) {
-				recDays.add(4);
+				for (int i = 2; i <=6; i++) {
+					recDays.add(i);
+				}
 			}		
 			newParameters.setRecurrence(recDays);
 			
