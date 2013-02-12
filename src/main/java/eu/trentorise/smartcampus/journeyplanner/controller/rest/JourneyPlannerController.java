@@ -471,9 +471,9 @@ public class JourneyPlannerController {
 	}
 
 	
-	@RequestMapping(method = RequestMethod.GET, value = "/eu.trentorise.smartcampus.journeyplanner.sync.BasicRecurrentJourneyParameters")
+	@RequestMapping(method = RequestMethod.GET, value = "/eu.trentorise.smartcampus.journeyplanner.sync.BasicRecurrentJourneyParameters/{clientId}")
 	public @ResponseBody
-	OldBasicRecurrentJourneyParameters oldGetRecurrentJourneys(HttpServletRequest request, HttpServletResponse response, HttpSession session, @PathVariable String clientId) throws InvocationException {	
+	OldBasicRecurrentJourneyParameters oldGetRecurrentJourney(HttpServletRequest request, HttpServletResponse response, HttpSession session, @PathVariable String clientId) throws InvocationException {	
 		try {
 			User user = getUser(request);
 			String userId = getUserId(user);
@@ -515,7 +515,7 @@ public class JourneyPlannerController {
 	return null;
 }	
 	
-	@RequestMapping(method = RequestMethod.GET, value = "/eu.trentorise.smartcampus.journeyplanner.sync.BasicRecurrentJourneyParameters/{clientId}")
+	@RequestMapping(method = RequestMethod.GET, value = "/eu.trentorise.smartcampus.journeyplanner.sync.BasicRecurrentJourneyParameters")
 	public @ResponseBody
 	List<OldBasicRecurrentJourneyParameters> oldGetRecurrentJourneys(HttpServletRequest request, HttpServletResponse response, HttpSession session) throws InvocationException {	
 		try {
