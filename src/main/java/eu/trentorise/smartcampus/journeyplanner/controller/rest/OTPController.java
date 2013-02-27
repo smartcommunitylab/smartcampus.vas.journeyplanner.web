@@ -94,7 +94,24 @@ public class OTPController {
 		} catch (Exception e) {
 			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 		}
+	}	
+	
+	@RequestMapping(method = RequestMethod.GET, value = "/getbustimes/{routeId}/{from}/{to}")
+	public @ResponseBody
+	void getBusTimes(HttpServletRequest request, HttpServletResponse response, HttpSession session, @PathVariable String routeId, @PathVariable Long from, @PathVariable Long to)  {
+		try {
+			String address =  otpURL + OTP + "getbustimes/" + routeId + "/" + from + "/" + to;
+			
+			String timetable = HTTPConnector.doGet(address, null, null, MediaType.APPLICATION_JSON, null);
+
+			response.setContentType("application/json; charset=utf-8");
+			response.getWriter().write(timetable);
+
+		} catch (Exception e) {
+			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+		}
 	}		
+	
 	
 	
 }
