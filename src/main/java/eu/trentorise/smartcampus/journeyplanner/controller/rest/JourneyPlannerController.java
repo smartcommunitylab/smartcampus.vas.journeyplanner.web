@@ -74,6 +74,7 @@ import eu.trentorise.smartcampus.journeyplanner.sync.BasicItinerary;
 import eu.trentorise.smartcampus.journeyplanner.sync.BasicJourneyPlannerUserProfile;
 import eu.trentorise.smartcampus.journeyplanner.sync.BasicRecurrentJourney;
 import eu.trentorise.smartcampus.journeyplanner.sync.OldBasicRecurrentJourneyParameters;
+import eu.trentorise.smartcampus.journeyplanner.util.ConnectorException;
 import eu.trentorise.smartcampus.journeyplanner.util.HTTPConnector;
 import eu.trentorise.smartcampus.presentation.storage.BasicObjectStorage;
 
@@ -139,6 +140,8 @@ public class JourneyPlannerController {
 			ServletOutputStream sos = response.getOutputStream();
 			sos.write(result.getBytes());
 
+		} catch (ConnectorException e0) {
+			response.setStatus(e0.getCode());
 		} catch (Exception e) {
 			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 		}
@@ -387,6 +390,8 @@ public class JourneyPlannerController {
 			pars.put("monitor", basicRecurrent.isMonitor());
 			domainClient.invokeDomainOperation("saveRecurrentJourney", "smartcampus.services.journeyplanner.RecurrentJourneyFactory", "smartcampus.services.journeyplanner.RecurrentJourneyFactory.0", pars, userId, "vas_journeyplanner_subscriber");
 			storage.storeObject(basicRecurrent);
+		} catch (ConnectorException e0) {
+			response.setStatus(e0.getCode());
 		} catch (Exception e) {
 			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 		}
@@ -469,6 +474,8 @@ public class JourneyPlannerController {
 				response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
 			}
 
+		} catch (ConnectorException e0) {
+			response.setStatus(e0.getCode());
 		} catch (Exception e) {
 			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 		}
@@ -653,6 +660,8 @@ public class JourneyPlannerController {
 
 			return journey;
 
+		} catch (ConnectorException e0) {
+			response.setStatus(e0.getCode());
 		} catch (Exception e) {
 			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 		}
@@ -731,6 +740,8 @@ public class JourneyPlannerController {
 				response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
 			}
 
+		} catch (ConnectorException e0) {
+			response.setStatus(e0.getCode());
 		} catch (Exception e) {
 			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 		}

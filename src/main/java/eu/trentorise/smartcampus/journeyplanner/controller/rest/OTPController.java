@@ -33,6 +33,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import eu.trentorise.smartcampus.ac.provider.AcServiceException;
+import eu.trentorise.smartcampus.journeyplanner.util.ConnectorException;
 import eu.trentorise.smartcampus.journeyplanner.util.HTTPConnector;
 
 @Controller
@@ -59,6 +60,8 @@ public class OTPController {
 			response.setContentType("application/json; charset=utf-8");
 			response.getWriter().write(routes);
 
+		} catch (ConnectorException e0) {
+			response.setStatus(e0.getCode());
 		} catch (Exception e) {
 			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 		}
@@ -75,6 +78,8 @@ public class OTPController {
 			response.setContentType("application/json; charset=utf-8");
 			response.getWriter().write(stops);
 			
+		} catch (ConnectorException e0) {
+			response.setStatus(e0.getCode());
 		} catch (Exception e) {
 			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 		}
@@ -91,6 +96,8 @@ public class OTPController {
 			response.setContentType("application/json; charset=utf-8");
 			response.getWriter().write(timetable);
 
+		} catch (ConnectorException e0) {
+			response.setStatus(e0.getCode());
 		} catch (Exception e) {
 			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 		}
@@ -107,6 +114,8 @@ public class OTPController {
 			response.setContentType("application/json; charset=utf-8");
 			response.getWriter().write(timetable);
 
+		} catch (ConnectorException e0) {
+			response.setStatus(e0.getCode());
 		} catch (Exception e) {
 			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 		}
@@ -123,6 +132,8 @@ public class OTPController {
 			response.setContentType("application/json; charset=utf-8");
 			response.getWriter().write(timetable);
 
+		} catch (ConnectorException e0) {
+			response.setStatus(e0.getCode());
 		} catch (Exception e) {
 			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 		}
