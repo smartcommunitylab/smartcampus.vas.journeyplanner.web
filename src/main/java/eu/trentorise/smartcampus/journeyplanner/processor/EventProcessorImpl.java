@@ -83,13 +83,11 @@ public class EventProcessorImpl implements DomainUpdateListener {
 			AlertStrike alert = mapper.convertValue(map.get("alert"), AlertStrike.class);
 			// TODO, need stopId?
 //			alert.setId();
-			alert.setId(alert.getTransport().getTripId() + "_" + alert.getFrom() + "_" + alert.getTo());
 			String req = mapper.writeValueAsString(alert);
 			String result = HTTPConnector.doPost(otpURL + JourneyPlannerController.SMARTPLANNER + "updateAS", req, MediaType.TEXT_HTML, MediaType.APPLICATION_JSON);
 			logger.info(result);
 		} else if (e.getEventSubtype().equals("alertDelay")) {
 			AlertDelay alert = mapper.convertValue(map.get("alert"), AlertDelay.class);
-			alert.setId(alert.getTransport().getTripId() + "_" + alert.getFrom() + "_" + alert.getTo());
 			String req = mapper.writeValueAsString(alert);
 			String result = HTTPConnector.doPost(otpURL + JourneyPlannerController.SMARTPLANNER + "updateAD", req, MediaType.TEXT_HTML, MediaType.APPLICATION_JSON);
 			logger.info(result);			
