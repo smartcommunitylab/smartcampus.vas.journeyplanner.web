@@ -109,7 +109,7 @@ public class OTPController {
 		try {
 			String address =  otpURL + OTP + "getlimitedtimetable/" + agencyId + "/" + stopId + "/" + maxResults;
 			
-			String timetable = HTTPConnector.doGet(address, null, null, MediaType.APPLICATION_JSON, null);
+			String timetable = HTTPConnector.doGet(address, null, null, MediaType.APPLICATION_JSON, "UTF-8");
 
 			response.setContentType("application/json; charset=utf-8");
 			response.getWriter().write(timetable);
@@ -127,7 +127,7 @@ public class OTPController {
 		try {
 			String address =  otpURL + OTP + "getbustimes/" + routeId + "/" + from + "/" + to;
 			
-			String timetable = HTTPConnector.doGet(address, null, null, MediaType.APPLICATION_JSON, null);
+			String timetable = HTTPConnector.doGet(address, null, null, MediaType.APPLICATION_JSON,  "UTF-8");
 
 			response.setContentType("application/json; charset=utf-8");
 			response.getWriter().write(timetable);
@@ -145,7 +145,7 @@ public class OTPController {
 		try {
 			String address =  otpURL + OTP + "getTransitTimes/" + routeId + "/" + from + "/" + to;
 			
-			String timetable = HTTPConnector.doGet(address, null, null, MediaType.APPLICATION_JSON, null);
+			String timetable = HTTPConnector.doGet(address, null, null, MediaType.APPLICATION_JSON,  "UTF-8");
 
 			response.setContentType("application/json; charset=utf-8");
 			response.getWriter().write(timetable);

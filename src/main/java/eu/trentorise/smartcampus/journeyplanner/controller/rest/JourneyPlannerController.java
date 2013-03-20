@@ -125,7 +125,7 @@ public class JourneyPlannerController {
 			List<Itinerary> itineraries = new ArrayList<Itinerary>();
 
 			for (String req : reqs) {
-				String plan = HTTPConnector.doGet(otpURL + SMARTPLANNER + PLAN, req, MediaType.APPLICATION_JSON, null, null);
+				String plan = HTTPConnector.doGet(otpURL + SMARTPLANNER + PLAN, req, MediaType.APPLICATION_JSON, null, "UTF-8");
 				List its = mapper.readValue(plan, List.class);
 				for (Object it : its) {
 					Itinerary itinerary = mapper.convertValue(it, Itinerary.class);
@@ -358,7 +358,7 @@ public class JourneyPlannerController {
 			List<SimpleLeg> legs = new ArrayList<SimpleLeg>();
 			ObjectMapper mapper = new ObjectMapper();
 			for (String req : reqs) {
-				String plan = HTTPConnector.doGet(otpURL + SMARTPLANNER + RECURRENT, req, MediaType.APPLICATION_JSON, null, null);
+				String plan = HTTPConnector.doGet(otpURL + SMARTPLANNER + RECURRENT, req, MediaType.APPLICATION_JSON, null, "UTF-8");
 				List sl = mapper.readValue(plan, List.class);
 				for (Object o : sl) {
 					legs.add((SimpleLeg) mapper.convertValue(o, SimpleLeg.class));
@@ -437,7 +437,7 @@ public class JourneyPlannerController {
 			List<SimpleLeg> legs = new ArrayList<SimpleLeg>();
 			ObjectMapper mapper = new ObjectMapper();
 			for (String req : reqs) {
-				String plan = HTTPConnector.doGet(otpURL + SMARTPLANNER + RECURRENT, req, MediaType.APPLICATION_JSON, null, null);
+				String plan = HTTPConnector.doGet(otpURL + SMARTPLANNER + RECURRENT, req, MediaType.APPLICATION_JSON, null, "UTF-8");
 				List sl = mapper.readValue(plan, List.class);
 				for (Object o : sl) {
 					legs.add((SimpleLeg) mapper.convertValue(o, SimpleLeg.class));
@@ -646,7 +646,7 @@ public class JourneyPlannerController {
 			List<SimpleLeg> legs = new ArrayList<SimpleLeg>();
 			ObjectMapper mapper = new ObjectMapper();
 			for (String req : reqs) {
-				String plan = HTTPConnector.doGet(otpURL + SMARTPLANNER + RECURRENT, req, MediaType.APPLICATION_JSON, null, null);
+				String plan = HTTPConnector.doGet(otpURL + SMARTPLANNER + RECURRENT, req, MediaType.APPLICATION_JSON, null, "UTF-8");
 				List sl = mapper.readValue(plan, List.class);
 				for (Object o : sl) {
 					legs.add((SimpleLeg) mapper.convertValue(o, SimpleLeg.class));
@@ -716,7 +716,7 @@ public class JourneyPlannerController {
 			List<SimpleLeg> legs = new ArrayList<SimpleLeg>();
 			ObjectMapper mapper = new ObjectMapper();
 			for (String req : reqs) {
-				String plan = HTTPConnector.doGet(otpURL + SMARTPLANNER + RECURRENT, req, MediaType.APPLICATION_JSON, null, null);
+				String plan = HTTPConnector.doGet(otpURL + SMARTPLANNER + RECURRENT, req, MediaType.APPLICATION_JSON, null, "UTF-8");
 				List sl = mapper.readValue(plan, List.class);
 				for (Object o : sl) {
 					legs.add((SimpleLeg) mapper.convertValue(o, SimpleLeg.class));
