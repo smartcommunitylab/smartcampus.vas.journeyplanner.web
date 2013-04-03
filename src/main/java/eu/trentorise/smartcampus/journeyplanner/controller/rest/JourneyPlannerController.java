@@ -20,7 +20,6 @@ import it.sayservice.platform.client.DomainObject;
 import it.sayservice.platform.client.InvocationException;
 import it.sayservice.platform.core.common.util.ServiceUtil;
 import it.sayservice.platform.smartplanner.data.message.Itinerary;
-import it.sayservice.platform.smartplanner.data.message.RType;
 import it.sayservice.platform.smartplanner.data.message.SimpleLeg;
 import it.sayservice.platform.smartplanner.data.message.TType;
 import it.sayservice.platform.smartplanner.data.message.Transport;
@@ -45,16 +44,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
-import javax.jws.soap.SOAPBinding.ParameterStyle;
-import javax.servlet.ServletInputStream;
-import javax.servlet.ServletOutputStream;
-import javax.servlet.ServletRequest;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import javax.ws.rs.core.MediaType;
 
-import org.apache.log4j.Logger;
 import org.bson.types.ObjectId;
 import org.codehaus.jackson.map.DeserializationConfig.Feature;
 import org.codehaus.jackson.map.ObjectMapper;
@@ -62,6 +56,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -74,6 +69,7 @@ import eu.trentorise.smartcampus.journeyplanner.sync.BasicItinerary;
 import eu.trentorise.smartcampus.journeyplanner.sync.BasicJourneyPlannerUserProfile;
 import eu.trentorise.smartcampus.journeyplanner.sync.BasicRecurrentJourney;
 import eu.trentorise.smartcampus.journeyplanner.sync.OldBasicRecurrentJourneyParameters;
+import eu.trentorise.smartcampus.journeyplanner.util.ConnectorException;
 import eu.trentorise.smartcampus.journeyplanner.util.HTTPConnector;
 import eu.trentorise.smartcampus.presentation.storage.BasicObjectStorage;
 
@@ -93,8 +89,6 @@ public class JourneyPlannerController {
 	@Value("${otp.url}")
 	private String otpURL;
 
-	private Logger log = Logger.getLogger(this.getClass());
-
 	// private static final String OTP_LOCATION = "http://213.21.154.84:7070";
 	// private static final String OTP_LOCATION = "http://localhost:7070";
 
@@ -107,16 +101,15 @@ public class JourneyPlannerController {
 	// no crud
 	@RequestMapping(method = RequestMethod.POST, value = "/plansinglejourney")
 	public @ResponseBody
-	void planSingleJourney(HttpServletRequest request, HttpServletResponse response, HttpSession session) throws InvocationException, AcServiceException {
+	List<Itinerary> planSingleJourney(HttpServletRequest request, HttpServletResponse response, HttpSession session, @RequestBody SingleJourney journeyRequest) throws InvocationException, AcServiceException {
 		try {
 			User user = getUser(request);
 			String userId = getUserId(user);
 			if (userId == null) {
 				response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-				return;
+				return null;
 			}
 
-			SingleJourney journeyRequest = (SingleJourney) extractContent(request, SingleJourney.class);
 			List<String> reqs = buildItineraryPlannerRequest(journeyRequest);
 
 			ObjectMapper mapper = new ObjectMapper();
@@ -124,7 +117,7 @@ public class JourneyPlannerController {
 			List<Itinerary> itineraries = new ArrayList<Itinerary>();
 
 			for (String req : reqs) {
-				String plan = HTTPConnector.doGet(otpURL + SMARTPLANNER + PLAN, req, MediaType.APPLICATION_JSON, null, null);
+				String plan = HTTPConnector.doGet(otpURL + SMARTPLANNER + PLAN, req, MediaType.APPLICATION_JSON, null, "UTF-8");
 				List its = mapper.readValue(plan, List.class);
 				for (Object it : its) {
 					Itinerary itinerary = mapper.convertValue(it, Itinerary.class);
@@ -134,14 +127,13 @@ public class JourneyPlannerController {
 
 			ItinerarySorter.sort(itineraries, journeyRequest.getRouteType());
 
-			String result = mapper.writeValueAsString(itineraries);
-
-			ServletOutputStream sos = response.getOutputStream();
-			sos.write(result.getBytes());
-
+			return itineraries;
+		} catch (ConnectorException e0) {
+			response.setStatus(e0.getCode());
 		} catch (Exception e) {
 			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 		}
+		return null;
 	}
 
 	private List<String> buildItineraryPlannerRequest(SingleJourney request) {
@@ -162,7 +154,7 @@ public class JourneyPlannerController {
 
 	@RequestMapping(method = RequestMethod.POST, value = "/eu.trentorise.smartcampus.journeyplanner.sync.BasicItinerary")
 	public @ResponseBody
-	void saveItinerary(HttpServletRequest request, HttpServletResponse response, HttpSession session) throws InvocationException, AcServiceException {
+	void saveItinerary(HttpServletRequest request, HttpServletResponse response, HttpSession session, @RequestBody BasicItinerary itinerary) throws InvocationException, AcServiceException {
 		try {
 			User user = getUser(request);
 			String userId = getUserId(user);
@@ -171,7 +163,6 @@ public class JourneyPlannerController {
 				return;
 			}
 
-			BasicItinerary itinerary = (BasicItinerary) extractContent(request, BasicItinerary.class);
 			Map<String, Object> pars = new HashMap<String, Object>();
 			pars.put("itinerary", itinerary.getData());
 			String clientId = itinerary.getClientId();
@@ -317,7 +308,7 @@ public class JourneyPlannerController {
 
 	@RequestMapping(method = RequestMethod.POST, value = "/eu.trentorise.smartcampus.journeyplanner.sync.BasicRecurrentJourneyParameters")
 	public @ResponseBody
-	void oldSaveRecurrentJourney(HttpServletRequest request, HttpServletResponse response, HttpSession session) throws InvocationException, AcServiceException {
+	void oldSaveRecurrentJourney(HttpServletRequest request, HttpServletResponse response, HttpSession session, @RequestBody OldBasicRecurrentJourneyParameters journeyRequest) throws InvocationException, AcServiceException {
 		try {
 			User user = getUser(request);
 			String userId = getUserId(user);
@@ -326,7 +317,6 @@ public class JourneyPlannerController {
 				return;
 			}
 
-			OldBasicRecurrentJourneyParameters journeyRequest = (OldBasicRecurrentJourneyParameters) extractContent(request, OldBasicRecurrentJourneyParameters.class);
 			OldRecurrentJourneyParameters parameters = journeyRequest.getData();
 
 			RecurrentJourneyParameters newParameters = new RecurrentJourneyParameters();
@@ -355,7 +345,7 @@ public class JourneyPlannerController {
 			List<SimpleLeg> legs = new ArrayList<SimpleLeg>();
 			ObjectMapper mapper = new ObjectMapper();
 			for (String req : reqs) {
-				String plan = HTTPConnector.doGet(otpURL + SMARTPLANNER + RECURRENT, req, MediaType.APPLICATION_JSON, null, null);
+				String plan = HTTPConnector.doGet(otpURL + SMARTPLANNER + RECURRENT, req, MediaType.APPLICATION_JSON, null, "UTF-8");
 				List sl = mapper.readValue(plan, List.class);
 				for (Object o : sl) {
 					legs.add((SimpleLeg) mapper.convertValue(o, SimpleLeg.class));
@@ -387,6 +377,8 @@ public class JourneyPlannerController {
 			pars.put("monitor", basicRecurrent.isMonitor());
 			domainClient.invokeDomainOperation("saveRecurrentJourney", "smartcampus.services.journeyplanner.RecurrentJourneyFactory", "smartcampus.services.journeyplanner.RecurrentJourneyFactory.0", pars, userId, "vas_journeyplanner_subscriber");
 			storage.storeObject(basicRecurrent);
+		} catch (ConnectorException e0) {
+			response.setStatus(e0.getCode());
 		} catch (Exception e) {
 			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 		}
@@ -394,7 +386,7 @@ public class JourneyPlannerController {
 
 	@RequestMapping(method = RequestMethod.PUT, value = "/eu.trentorise.smartcampus.journeyplanner.sync.BasicRecurrentJourneyParameters/{clientId}")
 	public @ResponseBody
-	void oldUpdateRecurrentJourney(HttpServletRequest request, HttpServletResponse response, HttpSession session, @PathVariable String clientId) throws InvocationException, AcServiceException {
+	void oldUpdateRecurrentJourney(HttpServletRequest request, HttpServletResponse response, HttpSession session, @RequestBody OldBasicRecurrentJourneyParameters journeyRequest, @PathVariable String clientId) throws InvocationException, AcServiceException {
 		try {
 			User user = getUser(request);
 			String userId = getUserId(user);
@@ -403,7 +395,6 @@ public class JourneyPlannerController {
 				return;
 			}
 
-			OldBasicRecurrentJourneyParameters journeyRequest = (OldBasicRecurrentJourneyParameters) extractContent(request, OldBasicRecurrentJourneyParameters.class);
 			OldRecurrentJourneyParameters parameters = journeyRequest.getData();
 
 			RecurrentJourneyParameters newParameters = new RecurrentJourneyParameters();
@@ -432,7 +423,7 @@ public class JourneyPlannerController {
 			List<SimpleLeg> legs = new ArrayList<SimpleLeg>();
 			ObjectMapper mapper = new ObjectMapper();
 			for (String req : reqs) {
-				String plan = HTTPConnector.doGet(otpURL + SMARTPLANNER + RECURRENT, req, MediaType.APPLICATION_JSON, null, null);
+				String plan = HTTPConnector.doGet(otpURL + SMARTPLANNER + RECURRENT, req, MediaType.APPLICATION_JSON, null, "UTF-8");
 				List sl = mapper.readValue(plan, List.class);
 				for (Object o : sl) {
 					legs.add((SimpleLeg) mapper.convertValue(o, SimpleLeg.class));
@@ -469,6 +460,8 @@ public class JourneyPlannerController {
 				response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
 			}
 
+		} catch (ConnectorException e0) {
+			response.setStatus(e0.getCode());
 		} catch (Exception e) {
 			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 		}
@@ -624,7 +617,7 @@ public class JourneyPlannerController {
 
 	@RequestMapping(method = RequestMethod.POST, value = "/planrecurrent")
 	public @ResponseBody
-	RecurrentJourney planRecurrentJourney(HttpServletRequest request, HttpServletResponse response, HttpSession session) throws InvocationException, AcServiceException {
+	RecurrentJourney planRecurrentJourney(HttpServletRequest request, HttpServletResponse response, @RequestBody RecurrentJourneyParameters parameters, HttpSession session) throws InvocationException, AcServiceException {
 		try {
 			User user = getUser(request);
 			String userId = getUserId(user);
@@ -633,13 +626,11 @@ public class JourneyPlannerController {
 				return null;
 			}
 
-			RecurrentJourneyParameters parameters = (RecurrentJourneyParameters) extractContent(request, RecurrentJourneyParameters.class);
-
 			List<String> reqs = buildRecurrentJourneyPlannerRequest(parameters);
 			List<SimpleLeg> legs = new ArrayList<SimpleLeg>();
 			ObjectMapper mapper = new ObjectMapper();
 			for (String req : reqs) {
-				String plan = HTTPConnector.doGet(otpURL + SMARTPLANNER + RECURRENT, req, MediaType.APPLICATION_JSON, null, null);
+				String plan = HTTPConnector.doGet(otpURL + SMARTPLANNER + RECURRENT, req, MediaType.APPLICATION_JSON, null, "UTF-8");
 				List sl = mapper.readValue(plan, List.class);
 				for (Object o : sl) {
 					legs.add((SimpleLeg) mapper.convertValue(o, SimpleLeg.class));
@@ -653,6 +644,8 @@ public class JourneyPlannerController {
 
 			return journey;
 
+		} catch (ConnectorException e0) {
+			response.setStatus(e0.getCode());
 		} catch (Exception e) {
 			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 		}
@@ -662,7 +655,7 @@ public class JourneyPlannerController {
 
 	@RequestMapping(method = RequestMethod.POST, value = "/eu.trentorise.smartcampus.journeyplanner.sync.BasicRecurrentJourney")
 	public @ResponseBody
-	void saveRecurrentJourney(HttpServletRequest request, HttpServletResponse response, HttpSession session) throws InvocationException, AcServiceException {
+	void saveRecurrentJourney(HttpServletRequest request, HttpServletResponse response, HttpSession session, @RequestBody BasicRecurrentJourney recurrent) throws InvocationException, AcServiceException {
 		try {
 			User user = getUser(request);
 			String userId = getUserId(user);
@@ -670,8 +663,6 @@ public class JourneyPlannerController {
 				response.setStatus(HttpServletResponse.SC_FORBIDDEN);
 				return;
 			}
-
-			BasicRecurrentJourney recurrent = (BasicRecurrentJourney) extractContent(request, BasicRecurrentJourney.class);
 
 			Map<String, Object> pars = new HashMap<String, Object>();
 			pars.put("recurrentJourney", recurrent.getData());
@@ -692,7 +683,7 @@ public class JourneyPlannerController {
 
 	@RequestMapping(method = RequestMethod.POST, value = "/planrecurrent/{clientId}")
 	public @ResponseBody
-	RecurrentJourney planRecurrentJourney(HttpServletRequest request, HttpServletResponse response, HttpSession session, @PathVariable String clientId) throws InvocationException, AcServiceException {
+	RecurrentJourney planRecurrentJourney(HttpServletRequest request, HttpServletResponse response, HttpSession session, @RequestBody RecurrentJourneyParameters parameters, @PathVariable String clientId) throws InvocationException, AcServiceException {
 		try {
 			User user = getUser(request);
 			String userId = getUserId(user);
@@ -701,13 +692,11 @@ public class JourneyPlannerController {
 				return null;
 			}
 
-			RecurrentJourneyParameters parameters = (RecurrentJourneyParameters) extractContent(request, RecurrentJourneyParameters.class);
-
 			List<String> reqs = buildRecurrentJourneyPlannerRequest(parameters);
 			List<SimpleLeg> legs = new ArrayList<SimpleLeg>();
 			ObjectMapper mapper = new ObjectMapper();
 			for (String req : reqs) {
-				String plan = HTTPConnector.doGet(otpURL + SMARTPLANNER + RECURRENT, req, MediaType.APPLICATION_JSON, null, null);
+				String plan = HTTPConnector.doGet(otpURL + SMARTPLANNER + RECURRENT, req, MediaType.APPLICATION_JSON, null, "UTF-8");
 				List sl = mapper.readValue(plan, List.class);
 				for (Object o : sl) {
 					legs.add((SimpleLeg) mapper.convertValue(o, SimpleLeg.class));
@@ -731,6 +720,8 @@ public class JourneyPlannerController {
 				response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
 			}
 
+		} catch (ConnectorException e0) {
+			response.setStatus(e0.getCode());
 		} catch (Exception e) {
 			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 		}
@@ -740,7 +731,7 @@ public class JourneyPlannerController {
 
 	@RequestMapping(method = RequestMethod.PUT, value = "/eu.trentorise.smartcampus.journeyplanner.sync.BasicRecurrentJourney/{clientId}")
 	public @ResponseBody
-	void updateRecurrentJourney(HttpServletRequest request, HttpServletResponse response, HttpSession session, @PathVariable String clientId) throws InvocationException, AcServiceException {
+	void updateRecurrentJourney(HttpServletRequest request, HttpServletResponse response, HttpSession session, @RequestBody BasicRecurrentJourney recurrent, @PathVariable String clientId) throws InvocationException, AcServiceException {
 		try {
 			User user = getUser(request);
 			String userId = getUserId(user);
@@ -748,8 +739,6 @@ public class JourneyPlannerController {
 				response.setStatus(HttpServletResponse.SC_FORBIDDEN);
 				return;
 			}
-
-			BasicRecurrentJourney recurrent = (BasicRecurrentJourney) extractContent(request, BasicRecurrentJourney.class);
 
 			String objectClientId = recurrent.getClientId();
 			if (!clientId.equals(objectClientId)) {
@@ -974,7 +963,7 @@ public class JourneyPlannerController {
 	// no crud
 	@RequestMapping(method = RequestMethod.POST, value = "/submitalert")
 	public @ResponseBody
-	void submitAlert(HttpServletRequest request, HttpServletResponse response, HttpSession session) throws InvocationException, AcServiceException {
+	void submitAlert(HttpServletRequest request, HttpServletResponse response, HttpSession session, @RequestBody Map<String, Object> map) throws InvocationException, AcServiceException {
 		try {
 			User user = getUser(request);
 			String userId = getUserId(user);
@@ -982,8 +971,6 @@ public class JourneyPlannerController {
 				response.setStatus(HttpServletResponse.SC_FORBIDDEN);
 				return;
 			}
-
-			Map<String, Object> map = (Map<String, Object>) extractContent(request, Map.class);
 
 			AlertType type = AlertType.getAlertType((String) map.get("type"));
 
@@ -1055,7 +1042,7 @@ public class JourneyPlannerController {
 
 	@RequestMapping(method = RequestMethod.PUT, value = "/eu.trentorise.smartcampus.journeyplanner.sync.BasicJourneyPlannerUserProfile/{clientId}")
 	public @ResponseBody
-	void updateUserProfile(HttpServletRequest request, HttpServletResponse response, HttpSession session, @PathVariable String clientId) throws InvocationException, AcServiceException {
+	void updateUserProfile(HttpServletRequest request, HttpServletResponse response, HttpSession session, @RequestBody JourneyPlannerUserProfile profile, @PathVariable String clientId) throws InvocationException, AcServiceException {
 		try {
 			User user = getUser(request);
 			String userId = getUserId(user);
@@ -1063,8 +1050,6 @@ public class JourneyPlannerController {
 				response.setStatus(HttpServletResponse.SC_FORBIDDEN);
 				return;
 			}
-
-			JourneyPlannerUserProfile profile = (JourneyPlannerUserProfile) extractContent(request, JourneyPlannerUserProfile.class);
 
 			DomainObject toUpdate = getObjectByClientId(clientId, "smartcampus.services.journeyplanner.RecurrentJourneyObject");
 			String objectId = toUpdate.getId();
@@ -1118,54 +1103,6 @@ public class JourneyPlannerController {
 		String token = request.getHeader(AcProviderFilter.TOKEN_HEADER);
 		User user = acService.getUserByToken(token);
 		return user;
-	}
-
-	@SuppressWarnings("unchecked")
-	private Object extractContent(ServletRequest request, Class clz) throws Exception {
-		try {
-			ServletInputStream sis = request.getInputStream();
-			ObjectMapper mapper = new ObjectMapper();
-			mapper.configure(Feature.READ_ENUMS_USING_TO_STRING, true);
-			Object obj = mapper.readValue(sis, clz);
-			return obj;
-		} catch (Exception e) {
-			log.error("Error converting request to " + clz.getName());
-			throw e;
-		}
-	}
-
-	@SuppressWarnings("unchecked")
-	private String extractContent(ServletRequest request) {
-		try {
-			ServletInputStream sis = request.getInputStream();
-			StringBuffer sb = new StringBuffer();
-			int c;
-			while ((c = sis.read()) != -1) {
-				sb.append((char) c);
-			}
-			return sb.toString();
-		} catch (Exception e) {
-			log.error("Error converting request to string");
-		}
-		return null;
-	}
-
-	private String listToJSON(List<String> list) {
-		List<String> sorted = list;
-		if (sorted == null) {
-			sorted = list;
-		}
-
-		String result = "[";
-		for (String r : sorted) {
-			result += r + ",";
-		}
-
-		if (result.length() > 1) {
-			result = result.substring(0, result.length() - 1);
-		}
-		result += "]";
-		return result;
 	}
 
 }

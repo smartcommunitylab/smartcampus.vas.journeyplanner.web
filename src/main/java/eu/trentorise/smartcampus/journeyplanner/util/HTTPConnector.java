@@ -45,7 +45,7 @@ public class HTTPConnector {
 			conn.setRequestProperty("Content-Type", contentType);
 		}
 		if (conn.getResponseCode() != 200) {
-			throw new RuntimeException("Failed : HTTP error code : " + conn.getResponseCode());
+			throw new ConnectorException("Failed : HTTP error code : " + conn.getResponseCode(), conn.getResponseCode());
 		}
 		
 		BufferedReader br;
@@ -93,7 +93,7 @@ public class HTTPConnector {
 		
 		
 		if (conn.getResponseCode() < 200 || conn.getResponseCode() > 299) {
-			throw new RuntimeException("Failed : HTTP error code : " + conn.getResponseCode());
+			throw new ConnectorException("Failed : HTTP error code : " + conn.getResponseCode(), conn.getResponseCode());
 		}
 		BufferedReader br = new BufferedReader(new InputStreamReader((conn.getInputStream())));
 

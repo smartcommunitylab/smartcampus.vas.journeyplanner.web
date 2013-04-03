@@ -17,13 +17,11 @@ package eu.trentorise.smartcampus.journeyplanner.controller.rest;
 
 import it.sayservice.platform.client.InvocationException;
 
-import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import javax.ws.rs.core.MediaType;
 
-import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Controller;
@@ -33,6 +31,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import eu.trentorise.smartcampus.ac.provider.AcServiceException;
+import eu.trentorise.smartcampus.journeyplanner.util.ConnectorException;
 import eu.trentorise.smartcampus.journeyplanner.util.HTTPConnector;
 
 @Controller
@@ -43,8 +42,6 @@ public class OTPController {
 	private String otpURL;	
 	
 	public static final String OTP  = "/smart-planner/rest/";
-	
-	private Logger log = Logger.getLogger(this.getClass());
 	
 //	http://localhost:7070/smart-planner/rest/gettimetable/12/401/216
 
@@ -59,6 +56,8 @@ public class OTPController {
 			response.setContentType("application/json; charset=utf-8");
 			response.getWriter().write(routes);
 
+		} catch (ConnectorException e0) {
+			response.setStatus(e0.getCode());
 		} catch (Exception e) {
 			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 		}
@@ -75,6 +74,8 @@ public class OTPController {
 			response.setContentType("application/json; charset=utf-8");
 			response.getWriter().write(stops);
 			
+		} catch (ConnectorException e0) {
+			response.setStatus(e0.getCode());
 		} catch (Exception e) {
 			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 		}
@@ -91,6 +92,8 @@ public class OTPController {
 			response.setContentType("application/json; charset=utf-8");
 			response.getWriter().write(timetable);
 
+		} catch (ConnectorException e0) {
+			response.setStatus(e0.getCode());
 		} catch (Exception e) {
 			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 		}
@@ -102,11 +105,13 @@ public class OTPController {
 		try {
 			String address =  otpURL + OTP + "getlimitedtimetable/" + agencyId + "/" + stopId + "/" + maxResults;
 			
-			String timetable = HTTPConnector.doGet(address, null, null, MediaType.APPLICATION_JSON, null);
+			String timetable = HTTPConnector.doGet(address, null, null, MediaType.APPLICATION_JSON, "UTF-8");
 
 			response.setContentType("application/json; charset=utf-8");
 			response.getWriter().write(timetable);
 
+		} catch (ConnectorException e0) {
+			response.setStatus(e0.getCode());
 		} catch (Exception e) {
 			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 		}
@@ -118,15 +123,35 @@ public class OTPController {
 		try {
 			String address =  otpURL + OTP + "getbustimes/" + routeId + "/" + from + "/" + to;
 			
-			String timetable = HTTPConnector.doGet(address, null, null, MediaType.APPLICATION_JSON, null);
+			String timetable = HTTPConnector.doGet(address, null, null, MediaType.APPLICATION_JSON,  "UTF-8");
 
 			response.setContentType("application/json; charset=utf-8");
 			response.getWriter().write(timetable);
 
+		} catch (ConnectorException e0) {
+			response.setStatus(e0.getCode());
 		} catch (Exception e) {
 			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 		}
 	}		
+	
+	@RequestMapping(method = RequestMethod.GET, value = "/gettransittimes/{routeId}/{from}/{to}")
+	public @ResponseBody
+	void getTransitTimes(HttpServletRequest request, HttpServletResponse response, HttpSession session, @PathVariable String routeId, @PathVariable Long from, @PathVariable Long to)  {
+		try {
+			String address =  otpURL + OTP + "getTransitTimes/" + routeId + "/" + from + "/" + to;
+			
+			String timetable = HTTPConnector.doGet(address, null, null, MediaType.APPLICATION_JSON,  "UTF-8");
+
+			response.setContentType("application/json; charset=utf-8");
+			response.getWriter().write(timetable);
+
+		} catch (ConnectorException e0) {
+			response.setStatus(e0.getCode());
+		} catch (Exception e) {
+			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+		}
+	}			
 	
 	
 	
