@@ -16,12 +16,22 @@
 package eu.trentorise.smartcampus.journeyplanner.controller.rest;
 
 import it.sayservice.platform.client.InvocationException;
+import it.sayservice.platform.smartplanner.data.message.otpbeans.TransitTimeTable;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import javax.ws.rs.core.MediaType;
 
+import org.codehaus.jackson.map.DeserializationConfig;
+import org.codehaus.jackson.map.ObjectMapper;
+import org.codehaus.jackson.map.SerializationConfig;
+import org.codehaus.jackson.map.introspect.NopAnnotationIntrospector;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Controller;
@@ -33,6 +43,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import eu.trentorise.smartcampus.ac.provider.AcServiceException;
 import eu.trentorise.smartcampus.journeyplanner.util.ConnectorException;
 import eu.trentorise.smartcampus.journeyplanner.util.HTTPConnector;
+import eu.trentorise.smartcampus.presentation.common.util.Util;
 
 @Controller
 public class OTPController {
@@ -42,6 +53,18 @@ public class OTPController {
 	private String otpURL;	
 	
 	public static final String OTP  = "/smart-planner/rest/";
+
+    private static ObjectMapper fullMapper = new ObjectMapper();
+    static {
+        fullMapper.setAnnotationIntrospector(NopAnnotationIntrospector.nopInstance());
+        fullMapper.configure(DeserializationConfig.Feature.READ_ENUMS_USING_TO_STRING, true);
+        fullMapper.configure(DeserializationConfig.Feature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        fullMapper.configure(DeserializationConfig.Feature.READ_ENUMS_USING_TO_STRING, true);
+
+        fullMapper.configure(SerializationConfig.Feature.WRITE_ENUMS_USING_TO_STRING, true);
+        fullMapper.configure(SerializationConfig.Feature.FAIL_ON_EMPTY_BEANS, false);
+    }
+
 	
 //	http://localhost:7070/smart-planner/rest/gettimetable/12/401/216
 
@@ -106,6 +129,33 @@ public class OTPController {
 			String address =  otpURL + OTP + "getlimitedtimetable/" + agencyId + "/" + stopId + "/" + maxResults;
 			
 			String timetable = HTTPConnector.doGet(address, null, null, MediaType.APPLICATION_JSON, "UTF-8");
+			// TODO temporal solution for backward compatibility
+			if (request.getParameter("complex")==null) {
+				Map<String,Map> ttt = fullMapper.readValue(timetable, Map.class);
+				Map map = Util.convert(ttt, Map.class);
+				for (String route : ttt.keySet()) {
+					Map smartCheckRoute = ttt.get(route);
+					Map<String, Map<String, String>> delays = (Map<String, Map<String, String>>)smartCheckRoute.get("delays");
+					Map<String,Integer> newDelays = new HashMap<String, Integer>();
+					if (delays != null) {
+						for (String trip : delays.keySet()) {
+							Map<String,String> delay = delays.get(trip);
+							if (delay != null && !delay.isEmpty()) {
+								String s = delay.entrySet().iterator().next().getValue();
+								try {
+									newDelays.put(trip, Integer.parseInt(s));
+								} catch (Exception e) {
+								} 
+							}
+						}
+					}
+					smartCheckRoute.put("delays", newDelays);
+				}
+				
+				response.getWriter().write(fullMapper.writeValueAsString(map));
+			} else {
+				response.getWriter().write(timetable);
+			}
 
 			response.setContentType("application/json; charset=utf-8");
 			response.getWriter().write(timetable);
@@ -144,15 +194,41 @@ public class OTPController {
 			String timetable = HTTPConnector.doGet(address, null, null, MediaType.APPLICATION_JSON,  "UTF-8");
 
 			response.setContentType("application/json; charset=utf-8");
-			response.getWriter().write(timetable);
+			
+			// TODO temporal solution for backward compatibility
+			if (request.getParameter("complex")==null) {
+				TransitTimeTable ttt = fullMapper.readValue(timetable, TransitTimeTable.class);
+				Map map = Util.convert(ttt, Map.class);
+				List<List<Integer>> list = new ArrayList<List<Integer>>();
+				map.put("delays", list);
+				for (List<Map<String,String>> daylist : ttt.getDelays()) {
+					List<Integer> newDayList = new ArrayList<Integer>();
+					list.add(newDayList);
+					for (Map<String, String> tripMap : daylist) {
+						if (tripMap != null && !tripMap.isEmpty()) {
+							String s = tripMap.entrySet().iterator().next().getValue();
+							try {
+								newDayList.add(Integer.parseInt(s));
+							} catch (Exception e) {
+								newDayList.add(0);
+							} 
+						} else {
+							newDayList.add(0); 
+						}
+					}
+				}
+				response.getWriter().write(fullMapper.writeValueAsString(map));
+			} else {
+				response.getWriter().write(timetable);
+			}
+			
 
 		} catch (ConnectorException e0) {
 			response.setStatus(e0.getCode());
 		} catch (Exception e) {
+			e.printStackTrace();
 			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 		}
 	}			
-	
-	
 	
 }
