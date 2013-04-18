@@ -1062,6 +1062,26 @@ public class JourneyPlannerController {
 			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 		}
 	}
+	
+	// /////////////////////////////////////////////////////////////////////////////	
+	
+	@RequestMapping(method = RequestMethod.GET, value = "/getparkings")
+	public @ResponseBody
+	void getParkings(HttpServletRequest request, HttpServletResponse response, HttpSession session) throws InvocationException, AcServiceException {
+		try {
+			String address =  otpURL + SMARTPLANNER + "getParkings";
+			
+			String routes = HTTPConnector.doGet(address, null, null, MediaType.APPLICATION_JSON, "UTF-8");
+			
+			response.setContentType("application/json; charset=utf-8");
+			response.getWriter().write(routes);
+
+		} catch (ConnectorException e0) {
+			response.setStatus(e0.getCode());
+		} catch (Exception e) {
+			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+		}
+	}		
 
 	// /////////////////////////////////////////////////////////////////////////////
 

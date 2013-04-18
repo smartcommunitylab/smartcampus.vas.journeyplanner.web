@@ -33,6 +33,7 @@ public class Subscriber {
 			client.subscribeDomain(EventProcessorImpl.ITINERARY_OBJECT, null);
 			client.subscribeDomain(EventProcessorImpl.RECURRENT_JOURNEY_OBJECT, null);
 			client.subscribeDomain(EventProcessorImpl.TRAINS_ALERT_SENDER, null);
+			client.subscribeDomain(EventProcessorImpl.PARKING_ALERT_SENDER, null);
 		} catch (InvocationException e) {
 			logger.error("Failed to subscribe for domain events: "+e.getMessage());
 		}

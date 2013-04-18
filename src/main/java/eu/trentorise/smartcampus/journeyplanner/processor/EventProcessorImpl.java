@@ -50,6 +50,7 @@ public class EventProcessorImpl implements DomainUpdateListener {
 	public static final String RECURRENT_JOURNEY_OBJECT = "smartcampus.services.journeyplanner.RecurrentJourneyObject";
 	public static final String ALERT_FACTORY = "smartcampus.services.journeyplanner.AlertFactory";
 	public static final String TRAINS_ALERT_SENDER = "smartcampus.services.journeyplanner.TrainsAlertsSender";
+	public static final String PARKING_ALERT_SENDER = "smartcampus.services.journeyplanner.ParkingAlertsSender";
 
 	@Autowired
 	@Value("${otp.url}")
@@ -66,6 +67,12 @@ public class EventProcessorImpl implements DomainUpdateListener {
 					e.printStackTrace();
 				}
 			} else if (event.getDoType().equals(TRAINS_ALERT_SENDER) && event.getEventType().equals(CUSTOM)) {
+				try {
+					forwardEvent(event);
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			} else if (event.getDoType().equals(PARKING_ALERT_SENDER) && event.getEventType().equals(CUSTOM)) {
 				try {
 					forwardEvent(event);
 				} catch (Exception e) {
