@@ -129,6 +129,7 @@ public class OTPController {
 			String address =  otpURL + OTP + "getlimitedtimetable/" + agencyId + "/" + stopId + "/" + maxResults;
 			
 			String timetable = HTTPConnector.doGet(address, null, null, MediaType.APPLICATION_JSON, "UTF-8");
+			response.setContentType("application/json; charset=utf-8");
 			// TODO temporal solution for backward compatibility
 			if (request.getParameter("complex")==null) {
 				Map<String,Map> ttt = fullMapper.readValue(timetable, Map.class);
@@ -156,10 +157,6 @@ public class OTPController {
 			} else {
 				response.getWriter().write(timetable);
 			}
-
-			response.setContentType("application/json; charset=utf-8");
-			response.getWriter().write(timetable);
-
 		} catch (ConnectorException e0) {
 			response.setStatus(e0.getCode());
 		} catch (Exception e) {
@@ -167,23 +164,23 @@ public class OTPController {
 		}
 	}		
 	
-	@RequestMapping(method = RequestMethod.GET, value = "/getbustimes/{routeId}/{from}/{to}")
-	public @ResponseBody
-	void getBusTimes(HttpServletRequest request, HttpServletResponse response, HttpSession session, @PathVariable String routeId, @PathVariable Long from, @PathVariable Long to)  {
-		try {
-			String address =  otpURL + OTP + "getbustimes/" + routeId + "/" + from + "/" + to;
-			
-			String timetable = HTTPConnector.doGet(address, null, null, MediaType.APPLICATION_JSON,  "UTF-8");
-
-			response.setContentType("application/json; charset=utf-8");
-			response.getWriter().write(timetable);
-
-		} catch (ConnectorException e0) {
-			response.setStatus(e0.getCode());
-		} catch (Exception e) {
-			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-		}
-	}		
+//	@RequestMapping(method = RequestMethod.GET, value = "/getbustimes/{routeId}/{from}/{to}")
+//	public @ResponseBody
+//	void getBusTimes(HttpServletRequest request, HttpServletResponse response, HttpSession session, @PathVariable String routeId, @PathVariable Long from, @PathVariable Long to)  {
+//		try {
+//			String address =  otpURL + OTP + "getbustimes/" + routeId + "/" + from + "/" + to;
+//			
+//			String timetable = HTTPConnector.doGet(address, null, null, MediaType.APPLICATION_JSON,  "UTF-8");
+//
+//			response.setContentType("application/json; charset=utf-8");
+//			response.getWriter().write(timetable);
+//
+//		} catch (ConnectorException e0) {
+//			response.setStatus(e0.getCode());
+//		} catch (Exception e) {
+//			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+//		}
+//	}		
 	
 	@RequestMapping(method = RequestMethod.GET, value = "/gettransittimes/{routeId}/{from}/{to}")
 	public @ResponseBody

@@ -44,6 +44,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
+import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
@@ -101,13 +102,13 @@ public class JourneyPlannerController {
 	// no crud
 	@RequestMapping(method = RequestMethod.POST, value = "/plansinglejourney")
 	public @ResponseBody
-	List<Itinerary> planSingleJourney(HttpServletRequest request, HttpServletResponse response, HttpSession session, @RequestBody SingleJourney journeyRequest) throws InvocationException, AcServiceException {
+	void planSingleJourney(HttpServletRequest request, HttpServletResponse response, HttpSession session, @RequestBody SingleJourney journeyRequest) throws InvocationException, AcServiceException {
 		try {
 			User user = getUser(request);
 			String userId = getUserId(user);
 			if (userId == null) {
 				response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-				return null;
+				return;
 			}
 
 			List<String> reqs = buildItineraryPlannerRequest(journeyRequest);
@@ -127,13 +128,18 @@ public class JourneyPlannerController {
 
 			ItinerarySorter.sort(itineraries, journeyRequest.getRouteType());
 
-			return itineraries;
+			response.setContentType("application/json; charset=utf-8");
+			
+			String result = mapper.writeValueAsString(itineraries);
+
+			ServletOutputStream sos = response.getOutputStream();
+			sos.write(result.getBytes());			
 		} catch (ConnectorException e0) {
 			response.setStatus(e0.getCode());
 		} catch (Exception e) {
 			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 		}
-		return null;
+//		return;
 	}
 
 	private List<String> buildItineraryPlannerRequest(SingleJourney request) {
@@ -642,8 +648,12 @@ public class JourneyPlannerController {
 			journey.setLegs(legs);
 			journey.setMonitorLegs(buildMonitorMap(legs));
 
-			return journey;
+			response.setContentType("application/json; charset=utf-8");
+			
+			String result = mapper.writeValueAsString(journey);
 
+			ServletOutputStream sos = response.getOutputStream();
+			sos.write(result.getBytes());				
 		} catch (ConnectorException e0) {
 			response.setStatus(e0.getCode());
 		} catch (Exception e) {
