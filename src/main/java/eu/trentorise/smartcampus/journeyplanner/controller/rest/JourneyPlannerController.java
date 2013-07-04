@@ -1096,6 +1096,10 @@ public class JourneyPlannerController {
 	@RequestMapping(method = RequestMethod.GET, value = "/getparkingsbyagency/{agencyId}")
 	public @ResponseBody
 	void getParkingsByAgency(HttpServletRequest request, HttpServletResponse response, HttpSession session, @PathVariable String agencyId) throws InvocationException, AcServiceException {
+//		if ("COMUNE_DI_TRENTO".equals(agencyId)) {
+//			getParkings(request,response,session);
+//			return;
+//		}
 		try {
 			String address =  otpURL + SMARTPLANNER + "getParkingsByAgency?agencyId=" + agencyId;
 			
