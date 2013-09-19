@@ -20,6 +20,7 @@ import it.sayservice.platform.core.message.Core.DomainEvent;
 import it.sayservice.platform.smartplanner.data.message.alerts.AlertAccident;
 import it.sayservice.platform.smartplanner.data.message.alerts.AlertDelay;
 import it.sayservice.platform.smartplanner.data.message.alerts.AlertParking;
+import it.sayservice.platform.smartplanner.data.message.alerts.AlertRoad;
 import it.sayservice.platform.smartplanner.data.message.alerts.AlertStrike;
 
 import java.util.List;
@@ -51,6 +52,7 @@ public class EventProcessorImpl implements DomainUpdateListener {
 	public static final String ALERT_FACTORY = "smartcampus.services.journeyplanner.AlertFactory";
 	public static final String TRAINS_ALERT_SENDER = "smartcampus.services.journeyplanner.TrainsAlertsSender";
 	public static final String PARKING_ALERT_SENDER = "smartcampus.services.journeyplanner.ParkingAlertsSender";
+	public static final String ROAD_ALERT_SENDER = "smartcampus.services.journeyplanner.RoadAlertSender";
 
 	@Autowired
 	@Value("${otp.url}")
@@ -73,6 +75,12 @@ public class EventProcessorImpl implements DomainUpdateListener {
 					e.printStackTrace();
 				}
 			} else if (event.getDoType().equals(PARKING_ALERT_SENDER) && event.getEventType().equals(CUSTOM)) {
+				try {
+					forwardEvent(event);
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			} else if (event.getAllTypesList().contains(ROAD_ALERT_SENDER) && event.getEventType().equals(CUSTOM)) {
 				try {
 					forwardEvent(event);
 				} catch (Exception e) {
@@ -108,6 +116,15 @@ public class EventProcessorImpl implements DomainUpdateListener {
 			String req = mapper.writeValueAsString(alert);
 			String result = HTTPConnector.doPost(otpURL + JourneyPlannerController.SMARTPLANNER + "updateAE", req, MediaType.TEXT_HTML, MediaType.APPLICATION_JSON);
 			logger.info(result);	
+		} if (e.getEventSubtype().equals("sendRoadAlerts")) {
+			AlertRoad[] alerts = mapper.convertValue(map.get("data"), AlertRoad[].class);
+			if (alerts != null) {
+				for (AlertRoad alertRoad : alerts) {
+					String req = mapper.writeValueAsString(alertRoad);
+					String result = HTTPConnector.doPost(otpURL + JourneyPlannerController.SMARTPLANNER + "updateAR", req, MediaType.TEXT_HTML, MediaType.APPLICATION_JSON);
+					logger.info(result);	
+				}
+			}
 		}
 	}
 }
