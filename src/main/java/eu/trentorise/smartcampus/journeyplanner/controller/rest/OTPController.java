@@ -104,6 +104,24 @@ public class OTPController {
 		}
 	}	
 	
+	@RequestMapping(method = RequestMethod.GET, value = "/getstops/{agencyId}/{routeId}/{latitude}/{longitude}/{radius:.+}")
+	public @ResponseBody
+	void getStops(HttpServletRequest request, HttpServletResponse response, HttpSession session, @PathVariable String agencyId, @PathVariable String routeId, @PathVariable double latitude, @PathVariable double longitude, @PathVariable double radius) throws InvocationException, AcServiceException {
+		try {
+			String address =  otpURL + OTP + "getstops/" + agencyId + "/" + routeId + "/" + latitude + "/" + longitude + "/" + radius;
+			
+			String stops = HTTPConnector.doGet(address, null, null, MediaType.APPLICATION_JSON, "UTF-8");
+
+			response.setContentType("application/json; charset=utf-8");
+			response.getWriter().write(stops);
+			
+		} catch (ConnectorException e0) {
+			response.setStatus(e0.getCode());
+		} catch (Exception e) {
+			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+		}
+	}		
+	
 	@RequestMapping(method = RequestMethod.GET, value = "/gettimetable/{agencyId}/{routeId}/{stopId:.*}")
 	public @ResponseBody
 	void getTimeTable(HttpServletRequest request, HttpServletResponse response, HttpSession session, @PathVariable String agencyId, @PathVariable String routeId, @PathVariable String stopId) throws InvocationException, AcServiceException {
