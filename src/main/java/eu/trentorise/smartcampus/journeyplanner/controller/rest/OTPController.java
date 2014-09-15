@@ -22,12 +22,14 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import javax.ws.rs.core.MediaType;
 
+import org.apache.log4j.Logger;
 import org.codehaus.jackson.map.DeserializationConfig;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.map.SerializationConfig;
@@ -53,6 +55,8 @@ public class OTPController {
 	private String otpURL;	
 	
 	public static final String OTP  = "/smart-planner/rest/";
+	
+	private Logger logger = Logger.getLogger(this.getClass());
 
     private static ObjectMapper fullMapper = new ObjectMapper();
     static {
@@ -126,6 +130,9 @@ public class OTPController {
 	public @ResponseBody
 	void getTimeTable(HttpServletRequest request, HttpServletResponse response, HttpSession session, @PathVariable String agencyId, @PathVariable String routeId, @PathVariable String stopId) throws InvocationException, AcServiceException {
 		try {
+			
+			logger.info(new Random().nextInt() + "~AppConsume~timetable=" + agencyId);
+			
 			String address =  otpURL + OTP + "gettimetable/" + agencyId + "/" + routeId + "/" + stopId;
 			
 			String timetable = HTTPConnector.doGet(address, null, null, MediaType.APPLICATION_JSON, null);
@@ -144,6 +151,8 @@ public class OTPController {
 	public @ResponseBody
 	void getLimitedTimeTable(HttpServletRequest request, HttpServletResponse response, HttpSession session, @PathVariable String agencyId, @PathVariable String stopId, @PathVariable Integer maxResults) throws InvocationException, AcServiceException {
 		try {
+			logger.info(new Random().nextInt()  + "~AppConsume~timetable=" + agencyId);
+			
 			String address =  otpURL + OTP + "getlimitedtimetable/" + agencyId + "/" + stopId + "/" + maxResults;
 			
 			String timetable = HTTPConnector.doGet(address, null, null, MediaType.APPLICATION_JSON, "UTF-8");

@@ -31,7 +31,6 @@ import it.sayservice.platform.smartplanner.data.message.alerts.AlertStrike;
 import it.sayservice.platform.smartplanner.data.message.alerts.AlertType;
 import it.sayservice.platform.smartplanner.data.message.alerts.CreatorType;
 import it.sayservice.platform.smartplanner.data.message.journey.JourneyPlannerUserProfile;
-import it.sayservice.platform.smartplanner.data.message.journey.JourneyRecurrence;
 import it.sayservice.platform.smartplanner.data.message.journey.RecurrentJourney;
 import it.sayservice.platform.smartplanner.data.message.journey.RecurrentJourneyParameters;
 import it.sayservice.platform.smartplanner.data.message.journey.SingleJourney;
@@ -41,6 +40,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.TreeMap;
 
 import javax.servlet.ServletOutputStream;
@@ -49,6 +49,7 @@ import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import javax.ws.rs.core.MediaType;
 
+import org.apache.log4j.Logger;
 import org.bson.types.ObjectId;
 import org.codehaus.jackson.map.DeserializationConfig.Feature;
 import org.codehaus.jackson.map.ObjectMapper;
@@ -96,6 +97,8 @@ public class JourneyPlannerController {
 
 	private static final String PLAN = "plan";
 	private static final String RECURRENT = "recurrentJourney";
+	
+	private Logger logger = Logger.getLogger(this.getClass());
 
 	// no crud
 	@RequestMapping(method = RequestMethod.POST, value = "/plansinglejourney")
@@ -104,6 +107,9 @@ public class JourneyPlannerController {
 		try {
 			User user = getUser(request);
 			String userId = getUserId(user);
+			
+			logger.info(new Random().nextInt()  + "~AppConsume~plan");
+			
 			if (userId == null) {
 				response.setStatus(HttpServletResponse.SC_FORBIDDEN);
 				return;
@@ -388,6 +394,8 @@ public class JourneyPlannerController {
 				response.setStatus(HttpServletResponse.SC_FORBIDDEN);
 				return;
 			}
+			
+			logger.info(new Random().nextInt() + "~AppConsume~monitor");
 
 			Map<String, Object> pars = new HashMap<String, Object>();
 			pars.put("recurrentJourney", recurrent.getData());
@@ -712,6 +720,7 @@ public class JourneyPlannerController {
 			case DELAY:
 				alert = mapper.convertValue(contentMap, AlertDelay.class);
 				method = "submitAlertDelay";
+				logger.info(new Random().nextInt() + "~AppProsume~delay=" + ((AlertDelay)alert).getTransport().getAgencyId());
 				break;
 			case PARKING:
 				alert = mapper.convertValue(contentMap, AlertParking.class);
