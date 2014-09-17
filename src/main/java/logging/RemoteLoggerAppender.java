@@ -28,7 +28,7 @@ public class RemoteLoggerAppender extends AppenderSkeleton
 			if (logURL != null && appId != null) {
 				String msg = convertLogMessage((String) event.getMessage());
 				if (msg != null) {
-					String pars = (event.getStartTime() / 1000) + "/" + appId + "/" + msg;
+					String pars = (System.currentTimeMillis() / 1000) + "/" + appId + "/" + msg;
 					String url = logURL + pars;
 					String res = HTTPConnector.doPost(url, "", null, null);
 					System.out.println(res + " " + pars);
