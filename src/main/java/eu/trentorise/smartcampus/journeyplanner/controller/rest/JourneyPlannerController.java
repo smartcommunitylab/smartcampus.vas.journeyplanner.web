@@ -108,7 +108,7 @@ public class JourneyPlannerController {
 			User user = getUser(request);
 			String userId = getUserId(user);
 			
-			logger.info(new Random().nextInt()  + "~AppConsume~plan");
+			logger.info("-"+userId  + "~AppConsume~plan");
 			
 			if (userId == null) {
 				response.setStatus(HttpServletResponse.SC_FORBIDDEN);
@@ -395,7 +395,7 @@ public class JourneyPlannerController {
 				return;
 			}
 			
-			logger.info(new Random().nextInt() + "~AppConsume~monitor");
+			logger.info("-"+userId  + "~AppConsume~monitor");
 
 			Map<String, Object> pars = new HashMap<String, Object>();
 			pars.put("recurrentJourney", recurrent.getData());
@@ -720,7 +720,7 @@ public class JourneyPlannerController {
 			case DELAY:
 				alert = mapper.convertValue(contentMap, AlertDelay.class);
 				method = "submitAlertDelay";
-				logger.info(new Random().nextInt() + "~AppProsume~delay=" + ((AlertDelay)alert).getTransport().getAgencyId());
+				logger.info("-"+userId  + "~AppProsume~delay=" + ((AlertDelay)alert).getTransport().getAgencyId());
 				break;
 			case PARKING:
 				alert = mapper.convertValue(contentMap, AlertParking.class);

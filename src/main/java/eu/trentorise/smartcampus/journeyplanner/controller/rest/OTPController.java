@@ -42,13 +42,19 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import eu.trentorise.smartcampus.ac.provider.AcService;
 import eu.trentorise.smartcampus.ac.provider.AcServiceException;
+import eu.trentorise.smartcampus.ac.provider.filters.AcProviderFilter;
+import eu.trentorise.smartcampus.ac.provider.model.User;
 import eu.trentorise.smartcampus.journeyplanner.util.ConnectorException;
 import eu.trentorise.smartcampus.journeyplanner.util.HTTPConnector;
 import eu.trentorise.smartcampus.presentation.common.util.Util;
 
 @Controller
 public class OTPController {
+
+	@Autowired
+	private AcService acService;
 
 	@Autowired
 	@Value("${otp.url}")
@@ -76,8 +82,11 @@ public class OTPController {
 	public @ResponseBody
 	void getRoutes(HttpServletRequest request, HttpServletResponse response, HttpSession session, @PathVariable String agencyId) throws InvocationException, AcServiceException {
 		try {
+			User user = getUser(request);
+			String userId = getUserId(user);
+
 			String address =  otpURL + OTP + "getroutes/" + agencyId;
-			
+			logger.info("-"+userId  + "~AppConsume~routes=" + agencyId);
 			String routes = HTTPConnector.doGet(address, null, null, MediaType.APPLICATION_JSON, "UTF-8");
 			
 			response.setContentType("application/json; charset=utf-8");
@@ -94,7 +103,11 @@ public class OTPController {
 	public @ResponseBody
 	void getStops(HttpServletRequest request, HttpServletResponse response, HttpSession session, @PathVariable String agencyId, @PathVariable String routeId) throws InvocationException, AcServiceException {
 		try {
+			User user = getUser(request);
+			String userId = getUserId(user);
+
 			String address =  otpURL + OTP + "getstops/" + agencyId + "/" + routeId;
+			logger.info("-"+userId  + "~AppConsume~stops=" + agencyId);
 			
 			String stops = HTTPConnector.doGet(address, null, null, MediaType.APPLICATION_JSON, "UTF-8");
 
@@ -112,8 +125,12 @@ public class OTPController {
 	public @ResponseBody
 	void getStops(HttpServletRequest request, HttpServletResponse response, HttpSession session, @PathVariable String agencyId, @PathVariable String routeId, @PathVariable double latitude, @PathVariable double longitude, @PathVariable double radius) throws InvocationException, AcServiceException {
 		try {
+			User user = getUser(request);
+			String userId = getUserId(user);
+
 			String address =  otpURL + OTP + "getstops/" + agencyId + "/" + routeId + "/" + latitude + "/" + longitude + "/" + radius;
 			
+			logger.info("-"+userId  + "~AppConsume~stops=" + agencyId);
 			String stops = HTTPConnector.doGet(address, null, null, MediaType.APPLICATION_JSON, "UTF-8");
 
 			response.setContentType("application/json; charset=utf-8");
@@ -130,8 +147,10 @@ public class OTPController {
 	public @ResponseBody
 	void getTimeTable(HttpServletRequest request, HttpServletResponse response, HttpSession session, @PathVariable String agencyId, @PathVariable String routeId, @PathVariable String stopId) throws InvocationException, AcServiceException {
 		try {
+			User user = getUser(request);
+			String userId = getUserId(user);
 			
-			logger.info(new Random().nextInt() + "~AppConsume~timetable=" + agencyId);
+			logger.info("-"+userId  + "~AppConsume~timetable=" + agencyId);
 			
 			String address =  otpURL + OTP + "gettimetable/" + agencyId + "/" + routeId + "/" + stopId;
 			
@@ -151,7 +170,10 @@ public class OTPController {
 	public @ResponseBody
 	void getLimitedTimeTable(HttpServletRequest request, HttpServletResponse response, HttpSession session, @PathVariable String agencyId, @PathVariable String stopId, @PathVariable Integer maxResults) throws InvocationException, AcServiceException {
 		try {
-			logger.info(new Random().nextInt()  + "~AppConsume~timetable=" + agencyId);
+			User user = getUser(request);
+			String userId = getUserId(user);
+
+			logger.info("-"+userId   + "~AppConsume~timetable=" + agencyId);
 			
 			String address =  otpURL + OTP + "getlimitedtimetable/" + agencyId + "/" + stopId + "/" + maxResults;
 			
@@ -213,7 +235,11 @@ public class OTPController {
 	public @ResponseBody
 	void getTransitTimes(HttpServletRequest request, HttpServletResponse response, HttpSession session, @PathVariable String routeId, @PathVariable Long from, @PathVariable Long to)  {
 		try {
+			User user = getUser(request);
+			String userId = getUserId(user);
+
 			String address =  otpURL + OTP + "getTransitTimes/" + routeId + "/" + from + "/" + to;
+			logger.info("-"+userId  + "~AppConsume~times=" + routeId);
 			
 			String timetable = HTTPConnector.doGet(address, null, null, MediaType.APPLICATION_JSON,  "UTF-8");
 
@@ -259,8 +285,12 @@ public class OTPController {
 	public @ResponseBody
 	void getTransitDelays(HttpServletRequest request, HttpServletResponse response, HttpSession session, @PathVariable String routeId, @PathVariable Long from, @PathVariable Long to)  {
 		try {
+			User user = getUser(request);
+			String userId = getUserId(user);
+
 			String address =  otpURL + OTP + "getTransitDelays/" + routeId + "/" + from + "/" + to;
-			
+			logger.info("-"+userId  + "~AppConsume~delays=" + routeId);
+
 			String timetable = HTTPConnector.doGet(address, null, null, MediaType.APPLICATION_JSON,  "UTF-8");
 
 			response.setContentType("application/json; charset=utf-8");
@@ -273,5 +303,16 @@ public class OTPController {
 			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 		}
 	}	
-	
+
+	private String getUserId(User user) {
+		return (user != null) ? user.getId().toString() : null;
+	}
+
+	private User getUser(HttpServletRequest request) throws AcServiceException {
+		String token = request.getHeader(AcProviderFilter.TOKEN_HEADER);
+		User user = acService.getUserByToken(token);
+		return user;
+	}
+
+
 }
